@@ -18,6 +18,10 @@ public struct DrawableView: NSViewRepresentable {
     
     public func updateNSView(_ nsView: MTKView, context: Context) {
     }
+    
+    public init(view: MTKView) {
+        self.view = view
+    }
 }
 #elseif os(iOS)
 import UIKit
@@ -30,6 +34,10 @@ public struct DrawableView: UIViewRepresentable {
     }
     
     public func updateUIView(_ nsView: MTKView, context: Context) {
+    }
+    
+    public init(view: MTKView) {
+        self.view = view
     }
 }
 #endif

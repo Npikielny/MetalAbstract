@@ -9,14 +9,14 @@ import SwiftUI
 import MetalKit
 import Combine
 
-struct MAView: View {
+public struct MAView: View {
     var view: DrawableView
 
     var timer: Publishers.Autoconnect<Timer.TimerPublisher>?
     
     var update: (MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
     
-    init(gpu: GPU,
+    public init(gpu: GPU,
         frame: CGRect = CGRect(
             x: 0,
             y: 0,
@@ -38,7 +38,7 @@ struct MAView: View {
         update = draw
     }
     
-    init(
+    public init(
         gpu: GPU,
         view: MTKView,
         updateProcedure: UpdateProcedure = .manual,
@@ -55,12 +55,12 @@ struct MAView: View {
         update = draw
     }
     
-    enum UpdateProcedure {
+    public enum UpdateProcedure {
         case rate(_ interval: Double)
         case manual
     }
     
-    var body: some View {
+    public var body: some View {
         if let timer {
             view
                 .onReceive(timer) { _ in

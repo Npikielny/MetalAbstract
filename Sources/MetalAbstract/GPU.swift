@@ -53,7 +53,7 @@ public actor GPU {
         try await execute(library: library, drawable: drawable, descriptor: descriptor, pass: pass)
     }
     
-    static var `default`: GPU {
+    public static var `default`: GPU {
         GPU(device: MTLCreateSystemDefaultDevice()!)!
     }
 }
