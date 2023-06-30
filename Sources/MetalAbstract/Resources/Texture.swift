@@ -7,8 +7,8 @@
 
 import MetalKit
 
-class Texture {
-    var name: String?
+public class Texture {
+    public let name: String?
     var wrapped: Representation
     
     public init(name: String? = nil, texture: MTLTexture) {
@@ -17,7 +17,7 @@ class Texture {
     }
     
     public init(name: String? = nil, path: String, options: TextureLoaderOptions? = nil) {
-        self.name = name
+        self.name = name ?? path
         self.wrapped = .path(path, options: options)
     }
     
@@ -26,7 +26,7 @@ class Texture {
         self.wrapped = .future(future)
     }
     
-    static func createMTLTexture(
+    public static func createMTLTexture(
         name: String?,
         gpu: MTLDevice,
         format: MTLPixelFormat,
@@ -46,7 +46,10 @@ class Texture {
         descriptor.storageMode = storageMode
         descriptor.usage = usage
         guard let texture = gpu.makeTexture(descriptor: descriptor) else {
-            throw MetalAbstractError("Unabled to create texture \(name ?? "")")
+            throw MAError("Unabled to create texture \(name ?? "")")
+        }
+        if let name {
+            texture.label = name
         }
         return texture
     }
@@ -123,6 +126,13 @@ class Texture {
                 wrapped = .raw(texture)
                 return texture
         }
+    }
+    
+    public func forceUnwrap() throws -> MTLTexture {
+        guard case let .raw(texture) = wrapped else {
+            throw MAError("Unwrapped texture before encoding")
+        }
+        return texture
     }
 }
 

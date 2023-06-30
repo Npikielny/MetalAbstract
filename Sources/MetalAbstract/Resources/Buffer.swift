@@ -7,171 +7,142 @@
 
 import MetalKit
 
-func >>= <A, B>(lhs: A?, rhs: (A) -> B) -> B? {
-    if let lhs { return rhs(lhs) }
-    return nil
-}
-
-class BufferManager {
-    var wrapped: Representation? = nil
-    var usage: Usage? = nil
-    
-    var transformations = [(BufferManager) -> Void]()
-    
-    init() {}
-    
-    enum Representation {
-        case bytes([any Bytes])
-        case buffer(MTLBuffer, usage: Usage)
-        case pointer(any Pointer)
-    }
-    
-    func cache(_ wrapped: Representation) {
-        self.wrapped = wrapped
-        for transformation in transformations {
-            transformation(self)
-        }
-    }
-    
-    subscript<T: Bytes>(_ index: Int, type: T.Type, count: Int) -> T? {
-        get {
-            guard let rep = wrapped else { return nil }
-            switch rep {
-                case let .bytes(bytes):
-                    return T.decode(bytes[index] as! T.GPUElement)
-                case let .pointer(pointer):
-                    return T.decode(pointer[index] as! T.GPUElement)
-                case let .buffer(buffer, usage):
-                    switch usage {
-                        case .gpu: return nil
-                        case .shared:
-                            let bound = buffer.contents().bindMemory(to: T.GPUElement.self, capacity: count)
-                            return T.decode(bound[index])
-                        #if os(macOS)
-                        case .managed:
-                            let bound = buffer.contents().bindMemory(to: T.GPUElement.self, capacity: count)
-                            return T.decode(bound[index])
-                        #endif
-                        case .sparse: fatalError("Erroneously passed to buffer manager")
-                    }
-            }
-        }
-        set {
-            guard let newValue = newValue else { fatalError("Cannot have null values in buffer") }
-            guard let rep = wrapped else {
-                transformations.append { $0[index, T.self, count] = newValue }
-                return
-            }
-            switch rep {
-                case let .bytes(bytes):
-                    self.wrapped = .bytes((bytes[..<index] as! ArraySlice<T.GPUElement>) + [newValue.encode()] + (bytes[(index + 1)...] as! ArraySlice<T.GPUElement>))
-                case let .pointer(pointer):
-                    setPointer(index: index, value: newValue.encode(), pointer: pointer)
-                case let .buffer(buffer, usage):
-                    switch usage {
-                        case .gpu: fatalError("CPU attempting access to GPU-only buffer")
-                        case .sparse: fatalError("Buffer encoded as MTLBuffer instead of bytes")
-                        case .shared:
-                            let stride = MemoryLayout<T.GPUElement>.stride
-                            let start = stride * index
-                            memcpy(buffer.contents() + start, [newValue.encode()], stride)
-                        #if os(macOS)
-                        case .managed:
-                            let stride = MemoryLayout<T.GPUElement>.stride
-                            let start = stride * index
-                            memcpy(buffer.contents() + start, [newValue.encode()], stride)
-                            if usage == .managed {
-                                buffer.didModifyRange(start..<(start + stride))
-                            }
-                        #endif
-                    }
-            }
-        }
-    }
-    
-    func setPointer<P: Pointer>(index: Int, value: Any, pointer: P) {
-        pointer.set(index, elt: value as! P.Element)
-    }
-}
-
-protocol BufferEncoder: AnyObject {
+public protocol ErasedBuffer: AnyObject {
     associatedtype Element
+    
+    func initialize(gpu: GPU) async throws
+    
+    var manager: BufferManager { get }
 }
 
-public class Buffer<T: Bytes> {
-    typealias Element = T.GPUElement
-    var wrapped: [T]?
+public class Buffer<T: Bytes>: ErasedBuffer {
+    var name: String?
+    public typealias Element = T.GPUElement
+    var wrapped: Representation
     let count: Int
     
-    private let buffer: BufferManager
+    public let manager = BufferManager()
     private let usage: Usage
-    
-//    subscript(_ index: Int) {
-//
-//    }
-//
-    convenience init(_ wrapped: T..., usage: Usage) {
-        self.init(wrapped as [T], usage: usage)
+
+    convenience init(name: String? = nil, _ wrapped: T..., usage: Usage) {
+        self.init(name: name, wrapped as [T], usage: usage)
     }
     
-    init(_ wrapped: [T], usage: Usage) {
-        buffer = BufferManager()
+    enum Representation {
+        case allocation(_ count: Int)
+        case wrapped(any BytesArray)
+        case freed
+    }
+    
+    public init(name: String? = nil, _ wrapped: [T], usage: Usage) {
+        self.name = name
         switch usage {
             case .sparse:
-                self.wrapped = wrapped
-                self.buffer.cache(.bytes(wrapped))
+                self.wrapped = .wrapped(BytesWrapper(array: wrapped))
+                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             case .shared:
-                self.wrapped = wrapped
+                self.wrapped = .wrapped(BytesWrapper(array: wrapped))
             #if os(macOS)
             case .managed:
-                self.wrapped = wrapped
+                self.wrapped = .wrapped(BytesWrapper(array: wrapped))
             #endif
             case .gpu:
                 fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
         }
         self.usage = usage
-        self.wrapped = wrapped
         count = wrapped.count
+    }
+    
+    public init(count: Int, type: T.Type) {
+        usage = .gpu
+        wrapped = .allocation(count)
+        self.count = count
+    }
+    
+    public func initialize(gpu: GPU) async throws {
+        if let _ = manager.wrapped { return }
+        switch usage {
+            case .sparse:
+                return
+            case .gpu:
+                guard case let .allocation(count) = wrapped else {
+                    throw MAError("Trying to make private buffer with data or no allocation size")
+                }
+                guard let buffer = gpu.device.makeBuffer(length: MemoryLayout<T>.stride * count, options: .storageModePrivate) else {
+                    throw MAError("Unable to make buffer")
+                }
+                self.manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
+            case .shared:
+                guard case let .wrapped(wrapped) = wrapped else {
+                    throw MAError("Unable to make shared buffer from private allocation")
+                }
+                guard let buffer = gpu.device.makeBuffer(
+                    bytes: wrapped.getPointer(),
+                    length: MemoryLayout<T>.stride * count,
+                    options: .storageModeShared
+                ) else {
+                    throw MAError("Unable to make buffer")
+                }
+                self.manager.cache(.buffer(buffer, offset: 0, usage: .shared))
+            #if os(macOS)
+            case .managed:
+                guard case let .wrapped(wrapped) = wrapped else {
+                    throw MAError("Unable to make shared buffer from private allocation")
+                }
+                guard let manager = gpu.device.makeBuffer(
+                    bytes: wrapped.getPointer(),
+                    length: MemoryLayout<T>.stride * count,
+                    options: .storageModeManaged
+                ) else {
+                    throw MAError("Unable to make buffer")
+                }
+                self.manager.cache(.buffer(manager, offset: 0, usage: .managed))
+            #endif
+        }
+        self.wrapped = .freed
     }
     
     subscript(_ index: Int) -> T? {
         get {
-            if usage == .sparse, let wrapped {
-                return wrapped[index]
+            if usage == .sparse {
+                switch wrapped {
+                    case let .wrapped(wrapped):
+                        return T.decode(wrapped[index] as! T.GPUElement)
+                    default:
+                        print("Unable to find bytes")
+                        return nil
+                }
             } else {
-                return buffer[index, T.self, count]
+                return manager[index, T.self, count]
             }
         }
         set {
             guard let newValue else { fatalError("Cannot have null value in buffer") }
-            if let wrapped {
-                self.wrapped = wrapped[..<index] + [newValue] + wrapped[(index + 1)...]
+            switch wrapped {
+                case let .wrapped(wrapped):
+                    wrapped.attemptSet(index, elt: newValue.encode())
+                case .freed, .allocation(_):
+                    fatalError("Attempting to edit GPU buffer")
+                    
             }
-            buffer[index, T.self, count] = newValue
+            manager[index, T.self, count] = newValue
         }
-    }
-    
-    public enum MemoryUsage {
-        case optimized
     }
 }
 
 public enum Usage {
-    /// For GPU editing only
+    /// GPU-use only
     case gpu
-    /// Both CPU and GPU can edit this data
+    /// Both CPU and GPU share this data
     case shared
     #if os(macOS)
-    /// Both CPU and GPU can edit this data, but the GPU must be notified of data changes
+    /// GPU data that the CPU can modify
     case managed
     #endif
-    /// Small pieces of data that cannot be changed by the GPU, but can be altered by the CPU
+    /// Small pieces of data that are stored on and can only be changed by the CPU
     case sparse
 }
 
-extension Buffer: BufferEncoder {
-    
-}
 //protocol BufferEncoder {
 //    /// Element that will be encoded into a GPU buffer
 //    associatedtype Element

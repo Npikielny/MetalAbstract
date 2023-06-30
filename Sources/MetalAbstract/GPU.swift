@@ -28,9 +28,9 @@ public class GPU {
         drawable: MTLDrawable? = nil,
         descriptor: MTLRenderPassDescriptor? = nil,
         pass: GPUPass
-    ) async {
-        pass.pass.forEach { shader in
-            shader.initialize(gpu: self)
+    ) async throws {
+        for shader in pass.pass { 
+            try await shader.initialize(gpu: self)
             if let drawable, let descriptor {
                 shader.setDrawingContext(drawable: drawable, descriptor: descriptor)
             }
@@ -41,7 +41,9 @@ public class GPU {
         }
 #endif
         let commandBuffer = queue.makeCommandBuffer()!
-        pass.pass.forEach { $0.encode(commandBuffer: commandBuffer) }
+        for shader in pass.pass {
+            try await shader.encode(commandBuffer: commandBuffer)
+        }
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
     }
