@@ -34,9 +34,9 @@ public class RasterShader: CompiledShader {
         fragmentShader: String,
         fragmentConstants: MTLFunctionConstantValues? = nil,
         vertexTextures: [Texture],
-        vertexBuffers: [BufferManager],
+        vertexBuffers: [any ErasedBuffer],
         fragmentTextures: [Texture],
-        fragmentBuffers: [BufferManager],
+        fragmentBuffers: [any ErasedBuffer],
         startingVertex: Int,
         vertexCount: Int,
         primitive: MTLPrimitiveType,
@@ -51,9 +51,9 @@ public class RasterShader: CompiledShader {
             format: format
         )
         self.vertexTextures = vertexTextures
-        self.vertexBuffers = vertexBuffers
+        self.vertexBuffers = vertexBuffers.map(\.manager)
         self.fragmentTextures = fragmentTextures
-        self.fragmentBuffers = fragmentBuffers
+        self.fragmentBuffers = fragmentBuffers.map(\.manager)
         self.startingVertex = startingVertex
         self.vertexCount = vertexCount
         self.descriptor = passDescriptor
@@ -125,16 +125,16 @@ public enum RenderPassDescriptor {
     }
 }
 
-protocol RenderTargetFormat {
+public protocol RenderTargetFormat {
     func format(gpu: GPU) async throws -> MTLPixelFormat
 }
 
 extension MTLPixelFormat: RenderTargetFormat {
-    func format(gpu: GPU) async throws -> MTLPixelFormat { self }
+    public func format(gpu: GPU) async throws -> MTLPixelFormat { self }
 }
 
 extension Texture: RenderTargetFormat {
-    func format(gpu: GPU) async throws -> MTLPixelFormat {
+    public func format(gpu: GPU) async throws -> MTLPixelFormat {
         let unwrapped = try await encode(gpu)
         return unwrapped.pixelFormat
     }
