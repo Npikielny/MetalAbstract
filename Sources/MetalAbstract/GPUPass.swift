@@ -8,7 +8,7 @@
 import MetalKit
 
 public class GPUPass {
-    public typealias Pass = [MAShader]
+    public typealias Pass = [Shader]
     public typealias PassBuilder = () throws -> Pass
     var pass: Pass
     
@@ -21,18 +21,8 @@ public class GPUPass {
 extension GPUPass {
     @resultBuilder
     public struct GPUPassBuilder {
-        public static func buildBlock(_ components: MAShader...) -> [MAShader] {
+        public static func buildBlock(_ components: Shader...) -> [Shader] {
             components
         }
     }
-}
-
-public protocol MAShader {
-    func setDrawingContext(drawable: MTLDrawable, descriptor: MTLRenderPassDescriptor)
-    func initialize(gpu: GPU)
-    func encode(commandBuffer: MTLCommandBuffer)
-}
-
-extension MAShader {
-    func setDrawingContext(drawable: MTLDrawable, descriptor: MTLRenderPassDescriptor) {}
 }

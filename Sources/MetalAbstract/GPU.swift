@@ -7,12 +7,14 @@
 
 import MetalKit
 
-public actor GPU {
+public class GPU {
     static var debug = false
     public var name: String { device.name }
     public let device: MTLDevice
     public let queue: MTLCommandQueue
     public var library: MTLLibrary?
+    
+    public lazy var loader = MTKTextureLoader(device: device)
     
     public init?(device: MTLDevice, library: MTLLibrary? = nil) {
         self.device = device
