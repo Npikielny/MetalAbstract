@@ -8,7 +8,7 @@
 import Foundation
 
 extension MetalAbstract {
-    static let quadVerts = """
+    public static let quadVerts = """
 #include <metal_stdlib>
 using namespace metal;
 

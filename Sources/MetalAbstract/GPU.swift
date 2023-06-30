@@ -44,6 +44,9 @@ public class GPU {
         for shader in pass.pass {
             try await shader.encode(gpu: self, commandBuffer: commandBuffer)
         }
+        if let drawable {
+            commandBuffer.present(drawable)
+        }
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
     }
