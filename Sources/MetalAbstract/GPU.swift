@@ -30,7 +30,7 @@ public class GPU {
         pass: GPUPass
     ) async throws {
         for shader in pass.pass { 
-            try await shader.initialize(gpu: self)
+            try await shader.initialize(gpu: self, library: library ?? self.library ?? device.makeDefaultLibrary()!)
             if let drawable, let descriptor {
                 shader.setDrawingContext(drawable: drawable, descriptor: descriptor)
             }
@@ -42,7 +42,7 @@ public class GPU {
 #endif
         let commandBuffer = queue.makeCommandBuffer()!
         for shader in pass.pass {
-            try await shader.encode(commandBuffer: commandBuffer)
+            try await shader.encode(gpu: self, commandBuffer: commandBuffer)
         }
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()

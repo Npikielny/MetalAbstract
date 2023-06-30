@@ -76,7 +76,7 @@ public class RasterShader: CompiledShader {
         }
     }
     
-    func setDrawingContext(drawable: MTLDrawable, descriptor: MTLRenderPassDescriptor) {
+    public func setDrawingContext(drawable: MTLDrawable, descriptor: MTLRenderPassDescriptor) {
         defaultDescriptor = descriptor
         self.drawable = drawable
     }

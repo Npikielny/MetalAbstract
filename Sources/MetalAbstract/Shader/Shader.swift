@@ -9,8 +9,8 @@ import Metal
 
 public protocol Shader: AnyObject {
     func setDrawingContext(drawable: MTLDrawable, descriptor: MTLRenderPassDescriptor)
-    func initialize(gpu: GPU) async throws
-    func encode(commandBuffer: MTLCommandBuffer) async throws
+    func initialize(gpu: GPU, library: MTLLibrary) async throws
+    func encode(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws
 }
 
 extension Shader {
@@ -45,7 +45,7 @@ extension Pipeline {
     }
 }
 
-protocol CompiledShader {
+protocol CompiledShader: Shader {
     associatedtype Function: Pipeline
     associatedtype Encoder: CommandEncoder where Encoder.Pipeline == Function.Pipeline
     
@@ -62,7 +62,7 @@ protocol CompiledShader {
 }
 
 extension CompiledShader {
-    func initialize(gpu: GPU, library: MTLLibrary) async throws {
+    public func initialize(gpu: GPU, library: MTLLibrary) async throws {
         for buffer in bufferManagers {
             try await buffer.initialize(gpu: gpu)
         }
@@ -73,7 +73,7 @@ extension CompiledShader {
         let _ = try await function.compile(gpu: gpu, library: library)
     }
     
-    func encode(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws {
+    public func encode(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws {
         guard case let .pipeline(pipeline) = function.wrapped else {
             throw MAError("Unable to compile functions")
         }
