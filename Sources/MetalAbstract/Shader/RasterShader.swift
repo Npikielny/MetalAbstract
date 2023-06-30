@@ -7,8 +7,7 @@
 
 import MetalKit
 
-
-class RasterShader: CompiledShader {
+public class RasterShader: CompiledShader {
     var function: Function
     
     public var vertexTextures: [Texture]
