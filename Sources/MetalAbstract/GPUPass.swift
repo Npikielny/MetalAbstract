@@ -12,8 +12,8 @@ public class GPUPass {
     public typealias PassBuilder = () throws -> Pass
     var pass: Pass
     
-    init(pass: Pass) { self.pass = pass }
-    init(@GPUPassBuilder pass: PassBuilder) rethrows {
+    public init(pass: Pass) { self.pass = pass }
+    public init(@GPUPassBuilder pass: PassBuilder) rethrows {
         self.pass = try pass()
     }
 }
