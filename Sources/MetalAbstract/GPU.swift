@@ -47,8 +47,12 @@ public class GPU {
         }
         if let drawable {
             commandBuffer.present(drawable)
+            await MainActor.run {
+                commandBuffer.commit()
+            }
+        } else {
+            commandBuffer.commit()
         }
-        commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
     }
 
