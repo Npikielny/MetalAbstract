@@ -20,6 +20,7 @@ public class GPU {
         self.device = device
         guard let queue = device.makeCommandQueue() else { return nil }
         self.queue = queue
+        self.queue.label = "MA Queue for \(device.name)"
         self.library = library ?? device.makeDefaultLibrary()
     }
     
