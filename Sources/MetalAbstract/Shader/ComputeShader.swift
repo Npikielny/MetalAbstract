@@ -17,8 +17,8 @@ public class ComputeShader {
     public convenience init(
         name: String,
         constants: MTLFunctionConstantValues? = nil,
-        buffers: [any ErasedBuffer],
-        textures: [Texture],
+        buffers: [any ErasedBuffer] = [],
+        textures: [Texture] = [],
         threadGroupSize: MTLSize,
         dispatchSize: @escaping (MTLSize) -> MTLSize
     ) {
@@ -35,8 +35,8 @@ public class ComputeShader {
     public init(
         name: String,
         constants: MTLFunctionConstantValues? = nil,
-        buffers: [any ErasedBuffer],
-        textures: [Texture],
+        buffers: [any ErasedBuffer] = [],
+        textures: [Texture] = [],
         threadGroupSize: MTLSize,
         dispatchSize: ThreadGroupDispatch
     ) {

@@ -28,27 +28,91 @@ public class RasterShader: CompiledShader {
     var defaultDescriptor: MTLRenderPassDescriptor?
     var drawable: MTLDrawable? = nil
     
-    public init(
+    public convenience init(
         vertexShader: String,
         vertexConstants: MTLFunctionConstantValues? = nil,
         fragmentShader: String,
         fragmentConstants: MTLFunctionConstantValues? = nil,
-        vertexTextures: [Texture],
-        vertexBuffers: [any ErasedBuffer],
-        fragmentTextures: [Texture],
-        fragmentBuffers: [any ErasedBuffer],
-        startingVertex: Int,
-        vertexCount: Int,
-        primitive: MTLPrimitiveType,
+        vertexTextures: [Texture] = [],
+        vertexBuffers: [any ErasedBuffer] = [],
+        fragmentTextures: [Texture] = [],
+        fragmentBuffers: [any ErasedBuffer] = [],
+        startingVertex: Int = 0,
+        vertexCount: Int = 6,
+        primitive: MTLPrimitiveType = .triangle,
         passDescriptor: RenderPassDescriptor,
-        format: RenderTargetFormat
+        texture: Texture
+    ) {
+        self.init(
+            vertexShader: vertexShader,
+            vertexConstants: vertexConstants,
+            fragmentShader: fragmentShader,
+            fragmentConstants: fragmentConstants,
+            vertexTextures: vertexTextures,
+            vertexBuffers: vertexBuffers,
+            fragmentTextures: fragmentTextures,
+            fragmentBuffers: fragmentBuffers,
+            startingVertex: startingVertex,
+            vertexCount: vertexCount,
+            primitive: primitive,
+            passDescriptor: passDescriptor,
+            targetFormat: texture
+        )
+    }
+    
+    public convenience init(
+        vertexShader: String,
+        vertexConstants: MTLFunctionConstantValues? = nil,
+        fragmentShader: String,
+        fragmentConstants: MTLFunctionConstantValues? = nil,
+        vertexTextures: [Texture] = [],
+        vertexBuffers: [any ErasedBuffer] = [],
+        fragmentTextures: [Texture] = [],
+        fragmentBuffers: [any ErasedBuffer] = [],
+        startingVertex: Int = 0,
+        vertexCount: Int = 6,
+        primitive: MTLPrimitiveType = .triangle,
+        passDescriptor: RenderPassDescriptor,
+        format: MTLPixelFormat
+    ) {
+        self.init(
+            vertexShader: vertexShader,
+            vertexConstants: vertexConstants,
+            fragmentShader: fragmentShader,
+            fragmentConstants: fragmentConstants,
+            vertexTextures: vertexTextures,
+            vertexBuffers: vertexBuffers,
+            fragmentTextures: fragmentTextures,
+            fragmentBuffers: fragmentBuffers,
+            startingVertex: startingVertex,
+            vertexCount: vertexCount,
+            primitive: primitive,
+            passDescriptor: passDescriptor,
+            targetFormat: format
+        )
+    }
+    
+    init(
+        vertexShader: String,
+        vertexConstants: MTLFunctionConstantValues? = nil,
+        fragmentShader: String,
+        fragmentConstants: MTLFunctionConstantValues? = nil,
+        vertexTextures: [Texture] = [],
+        vertexBuffers: [any ErasedBuffer] = [],
+        fragmentTextures: [Texture] = [],
+        fragmentBuffers: [any ErasedBuffer] = [],
+        startingVertex: Int = 0,
+        vertexCount: Int = 6,
+        primitive: MTLPrimitiveType = .triangle,
+        passDescriptor: RenderPassDescriptor,
+        targetFormat: RenderTargetFormat
     ) {
         self.function = Function(
             vertexShader: vertexShader,
             vertexConstants: vertexConstants,
             fragmentShader: fragmentShader,
             fragmentConstants: fragmentConstants,
-            format: format
+            format: targetFormat
         )
         self.vertexTextures = vertexTextures
         self.vertexBuffers = vertexBuffers.map(\.manager)
