@@ -85,6 +85,7 @@ extension CompiledShader {
         try setTextures(encoder)
         
         encoder.setPipelineState(pipeline)
+        dispatch(encoder)
         
         encoder.encoder.endEncoding()
     }
