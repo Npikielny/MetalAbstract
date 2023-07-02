@@ -102,7 +102,7 @@ public class Buffer<T: Bytes>: ErasedBuffer {
         self.wrapped = .freed
     }
     
-    subscript(_ index: Int) -> T? {
+    public subscript(_ index: Int) -> T? {
         get {
             if usage == .sparse {
                 switch wrapped {
