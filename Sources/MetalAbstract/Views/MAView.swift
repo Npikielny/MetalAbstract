@@ -10,11 +10,10 @@ import MetalKit
 import Combine
 
 public struct MAView: View {
-    var view: DrawableView
-
-    var timer: Publishers.Autoconnect<Timer.TimerPublisher>?
-    
-    var update: (MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+    let view: DrawableView
+    let timer: Publishers.Autoconnect<Timer.TimerPublisher>?
+    let update: (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+    let gpu: GPU
     
     public init(gpu: GPU,
         frame: CGRect = CGRect(
@@ -25,8 +24,9 @@ public struct MAView: View {
         ),
         format: MTLPixelFormat = .bgra8Unorm,
         updateProcedure: UpdateProcedure = .manual,
-        draw: @escaping (MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+        draw: @escaping (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
     ) {
+        self.gpu = gpu
         view = DrawableView(view: MTKView(frame: frame, device: gpu.device))
         view.view.colorPixelFormat = format
         switch updateProcedure {
@@ -42,8 +42,9 @@ public struct MAView: View {
         gpu: GPU,
         view: MTKView,
         updateProcedure: UpdateProcedure = .manual,
-        draw: @escaping (MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+        draw: @escaping (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
     ) {
+        self.gpu = gpu
         self.view = DrawableView(view: view)
         self.view.view.device = gpu.device
         switch updateProcedure {
@@ -75,7 +76,7 @@ public struct MAView: View {
         let drawable = view.currentDrawable
         let descriptor = view.currentRenderPassDescriptor
         Task {
-            try await update(drawable, descriptor)
+            try await update(gpu, drawable, descriptor)
         }
     }
 }
