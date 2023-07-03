@@ -19,7 +19,7 @@ public class Buffer<T: Bytes>: ErasedBuffer {
     var name: String?
     public typealias Element = T.GPUElement
     var wrapped: Representation
-    let count: Int
+    public let count: Int
     
     public let manager = BufferManager()
     private let usage: Usage

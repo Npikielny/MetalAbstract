@@ -51,6 +51,7 @@ public class ComputeShader {
         for texture in textures {
             let _ = try await texture.encode(gpu)
         }
+        
         for manager in bufferManagers {
             try await manager.initialize(gpu: gpu)
         }
