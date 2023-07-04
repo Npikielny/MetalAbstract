@@ -81,8 +81,13 @@ extension CompiledShader {
             throw MAError("Unable to make command encoder")
         }
         
-        try setBuffers(encoder)
-        try setTextures(encoder)
+        do {
+            try setBuffers(encoder)
+            try setTextures(encoder)
+        } catch {
+            print(error.localizedDescription)
+            throw error
+        }
         
         encoder.setPipelineState(pipeline)
         dispatch(encoder)
