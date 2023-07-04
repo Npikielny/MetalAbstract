@@ -16,6 +16,7 @@ public protocol ErasedBuffer: AnyObject {
 }
 
 public class VoidBuffer: ErasedBuffer {
+    public typealias Transform = (UnsafeMutableRawPointer) -> (start: Int, end: Int)
     public let manager = BufferManager()
     
     public typealias Element = Void
@@ -25,7 +26,10 @@ public class VoidBuffer: ErasedBuffer {
     
     let usage: Usage
     
+    var transforms = [Transform]()
+    
     public init(name: String? = nil, future: @escaping (GPU) -> (MTLBuffer, _: Int), usage: Usage) {
+        assert(usage != .gpu && usage != .sparse)
         self.name = name
         wrapped = .future(future)
         self.usage = usage
@@ -36,14 +40,39 @@ public class VoidBuffer: ErasedBuffer {
             case .buffer(_, _): return
             case let .future(future):
                 let (buffer, count) = try await future(gpu)
+                let ptr = buffer.contents()
+                let bounds = transforms.map { $0(ptr) }
+                #if os(macOS)
+                if usage == .managed, let min = bounds.map(\.start).min(), let max = bounds.map(\.end).max() {
+                    buffer.didModifyRange(min..<max)
+                }
+                #endif
                 wrapped = .buffer(buffer, count)
                 manager.cache(.buffer(buffer, offset: 0, usage: usage))
         }
     }
     
-    public var pointer: UnsafeMutableRawPointer {
-        guard case let .some(.buffer(buffer, _, _)) = manager.wrapped else { fatalError() }
+    var buffer: MTLBuffer? {
+        guard case let .some(.buffer(buffer, _, _)) = manager.wrapped else { return nil }
+        return buffer
+    }
+    
+    public var pointer: UnsafeMutableRawPointer? {
+        guard case let .some(.buffer(buffer, _, _)) = manager.wrapped else { return nil }
         return buffer.contents()
+    }
+    
+    public func edit(_ transform: @escaping Transform) {
+        if let buffer {
+            let (start, end) = transform(buffer.contents())
+            #if os(macOS)
+            if usage == .managed {
+                buffer.didModifyRange(start..<end)
+            }
+            #endif
+        } else {
+            transforms.append(transform)
+        }
     }
     
     enum Representation {
