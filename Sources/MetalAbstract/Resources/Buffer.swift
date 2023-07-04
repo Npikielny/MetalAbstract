@@ -28,18 +28,21 @@ public class VoidBuffer: ErasedBuffer {
     
     var transforms = [Transform]()
     
-    public init(name: String? = nil, future: @escaping (GPU) -> (MTLBuffer, _: Int), usage: Usage) {
+    public init(name: String? = nil, future: @escaping (GPU) -> (MTLBuffer, _: Int)?, usage: Usage) {
         assert(usage != .gpu && usage != .sparse)
         self.name = name
         wrapped = .future(future)
         self.usage = usage
+        manager.parent = self
     }
     
     public func initialize(gpu: GPU) async throws {
         switch wrapped {
             case .buffer(_, _): return
             case let .future(future):
-                let (buffer, count) = try await future(gpu)
+                guard let (buffer, count) = try await future(gpu) else {
+                    throw MAError("Unabled to create buffer \(name ?? "")")
+                }
                 let ptr = buffer.contents()
                 let bounds = transforms.map { $0(ptr) }
                 #if os(macOS)
@@ -76,7 +79,7 @@ public class VoidBuffer: ErasedBuffer {
     }
     
     enum Representation {
-        case future((GPU) async throws -> (MTLBuffer, Int))
+        case future((GPU) async throws -> (MTLBuffer, Int)?)
         case buffer(MTLBuffer, _ count: Int)
     }
 }
