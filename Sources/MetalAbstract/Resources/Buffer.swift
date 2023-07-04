@@ -15,11 +15,48 @@ public protocol ErasedBuffer: AnyObject {
     var manager: BufferManager { get }
 }
 
+public class VoidBuffer: ErasedBuffer {
+    public let manager = BufferManager()
+    
+    public typealias Element = Void
+    
+    let name: String?
+    var wrapped: Representation
+    
+    let usage: Usage
+    
+    public init(name: String? = nil, future: @escaping (GPU) -> (MTLBuffer, _: Int), usage: Usage) {
+        self.name = name
+        wrapped = .future(future)
+        self.usage = usage
+    }
+    
+    public func initialize(gpu: GPU) async throws {
+        switch wrapped {
+            case .buffer(_, _): return
+            case let .future(future):
+                let (buffer, count) = try await future(gpu)
+                wrapped = .buffer(buffer, count)
+                manager.cache(.buffer(buffer, offset: 0, usage: usage))
+        }
+    }
+    
+    public var pointer: UnsafeMutableRawPointer {
+        guard case let .some(.buffer(buffer, _, _)) = manager.wrapped else { fatalError() }
+        return buffer.contents()
+    }
+    
+    enum Representation {
+        case future((GPU) async throws -> (MTLBuffer, Int))
+        case buffer(MTLBuffer, _ count: Int)
+    }
+}
+
 public class Buffer<T: Bytes>: ErasedBuffer {
     var name: String?
     public typealias Element = T.GPUElement
     var wrapped: Representation
-    public let count: Int
+    public var count: Int
     
     public let manager = BufferManager()
     private let usage: Usage
@@ -30,6 +67,7 @@ public class Buffer<T: Bytes>: ErasedBuffer {
     
     enum Representation {
         case allocation(_ count: Int)
+        case future((GPU) async throws -> (MTLBuffer, count: Int))
         case wrapped(any BytesArray)
         case freed
     }
@@ -121,9 +159,8 @@ public class Buffer<T: Bytes>: ErasedBuffer {
             switch wrapped {
                 case let .wrapped(wrapped):
                     wrapped.attemptSet(index, elt: newValue.encode())
-                case .freed, .allocation(_):
+                case .freed, .allocation(_), .future(_):
                     fatalError("Attempting to edit GPU buffer")
-                    
             }
             manager[index, T.self, count] = newValue
         }
