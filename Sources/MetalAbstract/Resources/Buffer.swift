@@ -105,6 +105,7 @@ public class Buffer<T: Bytes>: ErasedBuffer {
     }
     
     public init(name: String? = nil, _ wrapped: [T], usage: Usage) {
+        manager.parent = self
         self.name = name
         switch usage {
             case .sparse:
@@ -124,6 +125,7 @@ public class Buffer<T: Bytes>: ErasedBuffer {
     }
     
     public init(count: Int, type: T.Type) {
+        manager.parent = self
         usage = .gpu
         wrapped = .allocation(count)
         self.count = count
