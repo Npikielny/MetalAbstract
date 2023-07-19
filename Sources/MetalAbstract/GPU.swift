@@ -54,6 +54,7 @@ public class GPU {
             commandBuffer.commit()
         }
         commandBuffer.waitUntilCompleted()
+        try await pass.completion(self)
     }
 
     public func execute(
