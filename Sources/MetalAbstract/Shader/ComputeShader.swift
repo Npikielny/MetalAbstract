@@ -11,7 +11,7 @@ public class ComputeShader {
     var function: Function
     var bufferManagers: [BufferManager]
     public var textures: [Texture]
-    let threadGroupSize: MTLSize
+    var threadGroupSize: MTLSize
     var dispatchSize: ThreadGroupDispatch
     
     public convenience init(
@@ -46,6 +46,13 @@ public class ComputeShader {
         self.threadGroupSize = threadGroupSize
         self.dispatchSize = dispatchSize
     }
+    private init(function: Function, bufferManagers: [BufferManager], textures: [Texture], threadGroupSize: MTLSize, dispatchSize: ThreadGroupDispatch) {
+        self.function = function
+        self.bufferManagers = bufferManagers
+        self.textures = textures
+        self.threadGroupSize = threadGroupSize
+        self.dispatchSize = dispatchSize
+    }
     
     public func initialize(gpu: GPU) async throws {
         for texture in textures {
@@ -55,6 +62,10 @@ public class ComputeShader {
         for manager in bufferManagers {
             try await manager.initialize(gpu: gpu)
         }
+    }
+    
+    public func copy() -> ComputeShader {
+        ComputeShader(function: function, bufferManagers: bufferManagers, textures: textures, threadGroupSize: threadGroupSize, dispatchSize: dispatchSize)
     }
 }
 

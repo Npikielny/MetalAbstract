@@ -61,9 +61,9 @@ public class GPU {
         library: MTLLibrary? = nil,
         drawable: MTLDrawable? = nil,
         descriptor: MTLRenderPassDescriptor? = nil,
-        @GPUPass.GPUPassBuilder pass: GPUPass.PassBuilder
-    ) async rethrows {
-        try await execute(library: library, drawable: drawable, descriptor: descriptor, pass: pass)
+        @GPUPass.GPUPassBuilder passBuilder: GPUPass.PassBuilder
+    ) async throws {
+        try await execute(library: library, drawable: drawable, descriptor: descriptor, pass: try GPUPass(pass: passBuilder))
     }
     
     public static var `default`: GPU {
