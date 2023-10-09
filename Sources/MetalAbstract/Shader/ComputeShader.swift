@@ -9,7 +9,7 @@ import Metal
 
 public class ComputeShader {
     var function: Function
-    var bufferManagers: [BufferManager]
+    public var bufferManagers: [BufferManager]
     public var textures: [Texture]
     var threadGroupSize: MTLSize
     var dispatchSize: ThreadGroupDispatch

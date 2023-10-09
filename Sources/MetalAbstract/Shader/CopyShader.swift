@@ -7,7 +7,7 @@
 
 import MetalKit
 
-class CopyShader: Shader {
+public class CopyShader: Shader {
     var operation: Representation
     enum Representation {
         case textures(
@@ -21,7 +21,7 @@ class CopyShader: Shader {
 //        case synchronize(Texture)
     }
     
-    init(source: Texture, sourceOrigin: MTLOrigin, sink: Texture, sinkOrigin: MTLOrigin, size: MTLSize) {
+    public init(source: Texture, sourceOrigin: MTLOrigin, sink: Texture, sinkOrigin: MTLOrigin, size: MTLSize) {
         operation = .textures(source: source, sourceOrigin: sourceOrigin, sink: sink, sinkOrigin: sinkOrigin, size: size)
     }
     
@@ -29,7 +29,7 @@ class CopyShader: Shader {
         operation = .directTextures(from: from, to: to)
     }
     
-    func initialize(gpu: GPU, library: MTLLibrary) async throws {
+    public func initialize(gpu: GPU, library: MTLLibrary) async throws {
         switch operation {
             case let .textures(source, _, sink, _, _),
                 let .directTextures(from: source, to: sink):
@@ -38,7 +38,7 @@ class CopyShader: Shader {
         }
     }
     
-    func encode(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws {
+    public func encode(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws {
         let encoder = commandBuffer.makeBlitCommandEncoder()
         switch operation {
             case let .textures(source, sourceOrigin, sink, sinkOrigin, size):
