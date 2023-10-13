@@ -72,7 +72,7 @@ public struct MAView: View {
         }
     }
     
-    func draw() {
+    public func draw() {
         let drawable = view.currentDrawable
         let descriptor = view.currentRenderPassDescriptor
         Task {

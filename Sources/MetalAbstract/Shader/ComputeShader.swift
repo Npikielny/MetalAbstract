@@ -20,7 +20,7 @@ public class ComputeShader {
         buffers: [any ErasedBuffer] = [],
         textures: [Texture] = [],
         threadGroupSize: MTLSize,
-        dispatchSize: @escaping (MTLSize) -> MTLSize
+        dispatchSize: @escaping (MTLSize, ShaderResources) -> MTLSize
     ) {
         self.init(
             name: name,
@@ -70,11 +70,11 @@ public class ComputeShader {
 }
 
 public protocol ThreadGroupDispatch {
-    func groupsForSize(size: MTLSize) -> MTLSize
+    func groupsForSize(size: MTLSize, resources: ShaderResources) -> MTLSize
 }
 
 extension MTLSize: ThreadGroupDispatch {
-    public func groupsForSize(size: MTLSize) -> MTLSize { self }
+    public func groupsForSize(size: MTLSize, resources: ShaderResources) -> MTLSize { self }
 }
 
 public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
@@ -86,14 +86,24 @@ public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
         )
     }
     
-    public var wrapped: (MTLSize) -> MTLSize
+    public var wrapped: (MTLSize, ShaderResources) -> MTLSize
     
-    init(wrapped: @escaping (MTLSize) -> MTLSize) {
+    init(wrapped: @escaping (MTLSize, ShaderResources) -> MTLSize) {
         self.wrapped = wrapped
     }
     
-    public func groupsForSize(size: MTLSize) -> MTLSize {
-        wrapped(size)
+    init() {
+        self.wrapped = { size, resources in
+            let texture = try! resources.allTextures.first!.first!.forceUnwrap()
+            return Self.groupsForSize(
+                size: size,
+                dispatch: MTLSize(width: texture.width, height: texture.height, depth: texture.depth)
+            )
+        }
+    }
+    
+    public func groupsForSize(size: MTLSize, resources: ShaderResources) -> MTLSize {
+        wrapped(size, resources)
     }
 }
 
@@ -115,7 +125,10 @@ extension ComputeShader: CompiledShader {
     }
     
     func dispatch(_ encoder: ComputeEncoder) {
-        encoder.encoder.dispatchThreadgroups(dispatchSize.groupsForSize(size: threadGroupSize), threadsPerThreadgroup: threadGroupSize)
+        encoder.encoder.dispatchThreadgroups(
+            dispatchSize.groupsForSize(size: threadGroupSize, resources: self),
+            threadsPerThreadgroup: threadGroupSize
+        )
     }
 }
 
