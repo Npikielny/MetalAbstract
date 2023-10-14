@@ -15,7 +15,7 @@ public protocol ErasedBuffer: AnyObject {
     var manager: BufferManager { get }
 }
 
-public class VoidBuffer: ErasedBuffer {
+open class VoidBuffer: ErasedBuffer {
     public typealias Transform = (UnsafeMutableRawPointer) -> (start: Int, end: Int)
     public let manager = BufferManager()
     
@@ -28,7 +28,7 @@ public class VoidBuffer: ErasedBuffer {
     
     var transforms = [Transform]()
     
-    public init(name: String? = nil, future: @escaping (GPU) -> (MTLBuffer, _: Int)?, usage: Usage) {
+    public init(name: String? = nil, future: @escaping (_ gpu: GPU) -> (MTLBuffer, _: Int)?, usage: Usage) {
         assert(usage != .gpu && usage != .sparse)
         self.name = name
         wrapped = .future(future)
@@ -84,7 +84,7 @@ public class VoidBuffer: ErasedBuffer {
     }
 }
 
-public class Buffer<T: Bytes>: ErasedBuffer {
+open class Buffer<T: Bytes>: ErasedBuffer {
     var name: String?
     public typealias Element = T.GPUElement
     var wrapped: Representation

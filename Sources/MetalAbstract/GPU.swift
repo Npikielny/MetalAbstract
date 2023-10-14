@@ -7,7 +7,7 @@
 
 import MetalKit
 
-public class GPU {
+open class GPU {
     static var debug = false
     public var name: String { device.name }
     public let device: MTLDevice

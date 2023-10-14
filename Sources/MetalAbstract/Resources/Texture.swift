@@ -7,7 +7,7 @@
 
 import MetalKit
 
-public class Texture {
+open class Texture {
     public let name: String?
     var wrapped: Representation
     
@@ -21,7 +21,7 @@ public class Texture {
         self.wrapped = .path(path, options: options)
     }
     
-    public init(name: String? = nil, future: @escaping (GPU) async throws -> MTLTexture) {
+    public init(name: String? = nil, future: @escaping (_ gpu: GPU) async throws -> MTLTexture) {
         self.name = name
         self.wrapped = .future(future)
     }

@@ -7,7 +7,7 @@
 
 import Metal
 
-public class BufferManager {
+open class BufferManager {
     weak var parent: (any ErasedBuffer)? = nil
     var wrapped: Representation? = nil
     var usage: Usage? = nil

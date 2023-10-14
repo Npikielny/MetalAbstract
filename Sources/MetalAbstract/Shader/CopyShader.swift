@@ -7,7 +7,7 @@
 
 import MetalKit
 
-public class CopyShader: Shader {
+open class CopyShader: Shader {
     var operation: Representation
     enum Representation {
         case textures(
@@ -25,7 +25,7 @@ public class CopyShader: Shader {
         operation = .textures(source: source, sourceOrigin: sourceOrigin, sink: sink, sinkOrigin: sinkOrigin, size: size)
     }
     
-    init(from: Texture, to: Texture) {
+    public init(from: Texture, to: Texture) {
         operation = .directTextures(from: from, to: to)
     }
     

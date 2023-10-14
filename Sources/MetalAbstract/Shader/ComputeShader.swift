@@ -7,7 +7,7 @@
 
 import Metal
 
-public class ComputeShader {
+open class ComputeShader {
     var function: Function
     public var bufferManagers: [BufferManager]
     public var textures: [Texture]
@@ -20,7 +20,7 @@ public class ComputeShader {
         buffers: [any ErasedBuffer] = [],
         textures: [Texture] = [],
         threadGroupSize: MTLSize,
-        dispatchSize: @escaping (MTLSize, ShaderResources) -> MTLSize
+        dispatchSize: @escaping (_ size: MTLSize, _ resources: ShaderResources) -> MTLSize
     ) {
         self.init(
             name: name,
@@ -38,7 +38,7 @@ public class ComputeShader {
         buffers: [any ErasedBuffer] = [],
         textures: [Texture] = [],
         threadGroupSize: MTLSize,
-        dispatchSize: ThreadGroupDispatch
+        dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()
     ) {
         function = Function(name: name, constants: constants)
         bufferManagers = buffers.map(\.manager)
@@ -46,7 +46,7 @@ public class ComputeShader {
         self.threadGroupSize = threadGroupSize
         self.dispatchSize = dispatchSize
     }
-    private init(function: Function, bufferManagers: [BufferManager], textures: [Texture], threadGroupSize: MTLSize, dispatchSize: ThreadGroupDispatch) {
+    private init(function: Function, bufferManagers: [BufferManager], textures: [Texture], threadGroupSize: MTLSize, dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()) {
         self.function = function
         self.bufferManagers = bufferManagers
         self.textures = textures
@@ -88,11 +88,11 @@ public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
     
     public var wrapped: (MTLSize, ShaderResources) -> MTLSize
     
-    init(wrapped: @escaping (MTLSize, ShaderResources) -> MTLSize) {
+    public init(wrapped: @escaping (_ size: MTLSize, _ resources: ShaderResources) -> MTLSize) {
         self.wrapped = wrapped
     }
     
-    init() {
+    public init() {
         self.wrapped = { size, resources in
             let texture = try! resources.allTextures.first!.first!.forceUnwrap()
             return Self.groupsForSize(

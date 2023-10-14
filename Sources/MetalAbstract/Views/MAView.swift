@@ -15,7 +15,8 @@ public struct MAView: View {
     let update: (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
     let gpu: GPU
     
-    public init(gpu: GPU,
+    public init(
+        gpu: GPU,
         frame: CGRect = CGRect(
             x: 0,
             y: 0,
@@ -24,7 +25,7 @@ public struct MAView: View {
         ),
         format: MTLPixelFormat = .bgra8Unorm,
         updateProcedure: UpdateProcedure = .manual,
-        draw: @escaping (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+        draw: @escaping (_ gpu: GPU, _ drawable: MTLDrawable?, _ descriptor: MTLRenderPassDescriptor?) async throws -> Void
     ) {
         self.gpu = gpu
         view = DrawableView(view: MTKView(frame: frame, device: gpu.device))
@@ -42,7 +43,7 @@ public struct MAView: View {
         gpu: GPU,
         view: MTKView,
         updateProcedure: UpdateProcedure = .manual,
-        draw: @escaping (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
+        draw: @escaping (_ gpu: GPU, _ drawable: MTLDrawable?, _ descriptor: MTLRenderPassDescriptor?) async throws -> Void
     ) {
         self.gpu = gpu
         self.view = DrawableView(view: view)
