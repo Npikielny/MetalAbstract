@@ -124,8 +124,9 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         manager.parent = self
     }
     
-    public init(count: Int, type: T.Type) {
-        usage = .gpu
+    public init(count: Int, type: T.Type, usage: Usage = .gpu) {
+        assert(usage == .gpu || usage == .managed || usage == .shared)
+        self.usage = usage
         wrapped = .allocation(count)
         self.count = count
         manager.parent = self
@@ -190,13 +191,11 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         }
         set {
             guard let newValue else { fatalError("Cannot have null value in buffer") }
-            switch wrapped {
-                case let .wrapped(wrapped):
-                    wrapped.attemptSet(index, elt: newValue.encode())
-                case .freed, .allocation(_), .future(_):
-                    fatalError("Attempting to edit GPU buffer")
+            if case let .wrapped(wrapped) = wrapped {
+                wrapped.attemptSet(index, elt: newValue.encode())
+            } else {
+                manager[index, T.self, count] = newValue
             }
-            manager[index, T.self, count] = newValue
         }
     }
 }

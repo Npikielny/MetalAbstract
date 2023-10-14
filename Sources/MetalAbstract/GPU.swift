@@ -19,8 +19,8 @@ open class GPU {
     public init?(device: MTLDevice, library: MTLLibrary? = nil) {
         self.device = device
         guard let queue = device.makeCommandQueue() else { return nil }
+        queue.label = "MA Queue for \(device.name)"
         self.queue = queue
-        self.queue.label = "MA Queue for \(device.name)"
         self.library = library ?? device.makeDefaultLibrary()
     }
     
