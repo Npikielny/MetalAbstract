@@ -144,7 +144,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
                 guard let buffer = gpu.device.makeBuffer(length: MemoryLayout<T>.stride * count, options: .storageModePrivate) else {
                     throw MAError("Unable to make buffer")
                 }
-                self.manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
+                manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
             case .shared:
                 guard case let .wrapped(wrapped) = wrapped else {
                     throw MAError("Unable to make shared buffer from private allocation")
@@ -156,7 +156,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
                 ) else {
                     throw MAError("Unable to make buffer")
                 }
-                self.manager.cache(.buffer(buffer, offset: 0, usage: .shared))
+                manager.cache(.buffer(buffer, offset: 0, usage: .shared))
             #if os(macOS)
             case .managed:
                 guard case let .wrapped(wrapped) = wrapped else {

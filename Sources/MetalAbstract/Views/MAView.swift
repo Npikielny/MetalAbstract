@@ -15,6 +15,8 @@ public struct MAView: View {
     let update: (GPU, MTLDrawable?, MTLRenderPassDescriptor?) async throws -> Void
     let gpu: GPU
     
+    @State var drawing = false
+    
     public init(
         gpu: GPU,
         frame: CGRect = CGRect(
@@ -74,10 +76,13 @@ public struct MAView: View {
     }
     
     public func draw() {
+        if drawing { return }
         let drawable = view.currentDrawable
         let descriptor = view.currentRenderPassDescriptor
+        drawing = true
         Task {
             try await update(gpu, drawable, descriptor)
+            self.drawing = false
         }
     }
 }
