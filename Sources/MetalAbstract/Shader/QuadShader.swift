@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension MetalAbstract {
+extension MetalAbstractConfig {
     public static let quadVerts = """
 #include <metal_stdlib>
 using namespace metal;

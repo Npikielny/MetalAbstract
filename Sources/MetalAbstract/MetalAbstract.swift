@@ -7,6 +7,6 @@
 
 import Foundation
 
-public struct MetalAbstract {
+public struct MetalAbstractConfig {
     static var debug = false
 }
