@@ -92,6 +92,29 @@ open class RasterShader: CompiledShader {
         )
     }
     
+    public init(
+        function: Function,
+        vertexTextures: [Texture] = [],
+        vertexBuffers: [any ErasedBuffer] = [],
+        fragmentTextures: [Texture] = [],
+        fragmentBuffers: [any ErasedBuffer] = [],
+        startingVertex: Int = 0,
+        vertexCount: Int = 6,
+        primitive: MTLPrimitiveType = .triangle,
+        passDescriptor: RenderPassDescriptor,
+        targetFormat: RenderTargetFormat
+    ) {
+        self.function = function
+        self.vertexTextures = vertexTextures
+        self.vertexBuffers = vertexBuffers.map(\.manager)
+        self.fragmentTextures = fragmentTextures
+        self.fragmentBuffers = fragmentBuffers.map(\.manager)
+        self.startingVertex = startingVertex
+        self.vertexCount = vertexCount
+        self.descriptor = passDescriptor
+        self.primitive = primitive
+    }
+    
     init(
         vertexShader: String,
         vertexConstants: MTLFunctionConstantValues? = nil,
@@ -205,7 +228,7 @@ extension Texture: RenderTargetFormat {
 }
 
 extension RasterShader {
-    final class Function: Pipeline {
+    public final class Function: Pipeline {
         typealias Constructor = (
             vertName: String,
             vertConstants: MTLFunctionConstantValues?,
@@ -217,7 +240,7 @@ extension RasterShader {
         
         var wrapped: PipelineRepresentation<RasterShader.Function>
         
-        init(
+        public init(
             vertexShader: String,
             vertexConstants: MTLFunctionConstantValues? = nil,
             fragmentShader: String,

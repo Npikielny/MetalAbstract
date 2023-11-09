@@ -46,6 +46,21 @@ open class ComputeShader {
         self.threadGroupSize = threadGroupSize
         self.dispatchSize = dispatchSize
     }
+    
+    public init(
+        function: Function,
+        buffers: [any ErasedBuffer] = [],
+        textures: [Texture] = [],
+        threadGroupSize: MTLSize,
+        dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()
+    ) {
+        self.function = function
+        bufferManagers = buffers.map(\.manager)
+        self.textures = textures
+        self.threadGroupSize = threadGroupSize
+        self.dispatchSize = dispatchSize
+    }
+    
     private init(function: Function, bufferManagers: [BufferManager], textures: [Texture], threadGroupSize: MTLSize, dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()) {
         self.function = function
         self.bufferManagers = bufferManagers
@@ -133,13 +148,13 @@ extension ComputeShader: CompiledShader {
 }
 
 extension ComputeShader {
-    final class Function: Pipeline {
+    public final class Function: Pipeline {
         typealias Constructor = (String, MTLFunctionConstantValues?)
         typealias Pipeline = MTLComputePipelineState
         
         var wrapped: PipelineRepresentation<ComputeShader.Function>
         
-        init(name: String, constants: MTLFunctionConstantValues? = nil) {
+        public init(name: String, constants: MTLFunctionConstantValues? = nil) {
             wrapped = .constructor((name, constants))
         }
         
