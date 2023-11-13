@@ -43,6 +43,7 @@ open class Texture {
         descriptor.depth = depth
         descriptor.width = width
         descriptor.height = height
+        descriptor.pixelFormat = format
         descriptor.storageMode = storageMode
         descriptor.usage = usage
         guard let texture = gpu.makeTexture(descriptor: descriptor) else {
