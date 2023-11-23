@@ -13,6 +13,7 @@ public protocol ErasedBuffer: AnyObject {
     func initialize(gpu: GPU) async throws
     
     var manager: BufferManager { get }
+    var unsafeCount: Int? { get }
 }
 
 open class VoidBuffer: ErasedBuffer {
@@ -27,6 +28,7 @@ open class VoidBuffer: ErasedBuffer {
     let usage: Usage
     
     var transforms = [Transform]()
+    public var unsafeCount: Int? { nil }
     
     public init(name: String? = nil, future: @escaping (_ gpu: GPU) -> (MTLBuffer, _: Int)?, usage: Usage) {
         assert(usage != .gpu && usage != .sparse)
@@ -89,6 +91,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     public typealias Element = T.GPUElement
     var wrapped: Representation
     public var count: Int
+    public var unsafeCount: Int? { count }
     
     public let manager = BufferManager()
     private let usage: Usage

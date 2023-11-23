@@ -16,6 +16,8 @@ open class BufferManager {
     
     init() {}
     
+    var count: Int? { parent?.unsafeCount }
+    
     func initialize(gpu: GPU) async throws {
         try await parent?.initialize(gpu: gpu)
     }

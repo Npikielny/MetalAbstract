@@ -120,6 +120,16 @@ public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
     public func groupsForSize(size: MTLSize, resources: ShaderResources) -> MTLSize {
         wrapped(size, resources)
     }
+    
+    public var buffer: ThreadGroupDispatch {
+        ThreadGroupDispatchWrapper { size, resources in
+            let bufferCount = (resources.allBuffers.first?.first?.count)!
+            return Self.groupsForSize(
+                size: size,
+                dispatch: MTLSize(width: bufferCount, height: 1, depth: 1)
+            )
+        }
+    }
 }
 
 extension ComputeShader: CompiledShader {
