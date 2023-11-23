@@ -121,7 +121,7 @@ public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
         wrapped(size, resources)
     }
     
-    public var buffer: ThreadGroupDispatch {
+    public static var buffer: ThreadGroupDispatch {
         ThreadGroupDispatchWrapper { size, resources in
             let bufferCount = (resources.allBuffers.first?.first?.count)!
             return Self.groupsForSize(
