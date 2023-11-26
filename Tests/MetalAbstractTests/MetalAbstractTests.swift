@@ -15,6 +15,11 @@ final class GraphicsKitTests: XCTestCase {
     func testBuffer() throws {
         let buffer = Buffer(0, 1, 2, 3, usage: .sparse)
         XCTAssertEqual(buffer[3], 3)
-        XCTAssertEqual(Buffer(0, 1, 2, 3, usage: .shared)[3], 3)
+        XCTAssertEqual(Buffer([0, 1, 2, 3], usage: .shared)[3], 3)
+        
+        let tempEmptyBuffer = Buffer<Int32>(name: "Empty buffer")
+        XCTAssertEqual(tempEmptyBuffer[0], .none)
+        tempEmptyBuffer.reset([1, 2, 3], usage: .sparse)
+        XCTAssertEqual(tempEmptyBuffer[0]!, 1)
     }
 }

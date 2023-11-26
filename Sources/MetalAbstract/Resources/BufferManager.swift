@@ -28,10 +28,12 @@ open class BufferManager {
         case pointer(any Pointer)
     }
     
-    func cache(_ wrapped: Representation) {
+    func cache(_ wrapped: Representation?) {
         self.wrapped = wrapped
-        for transformation in transformations {
-            transformation(self)
+        if let _ = wrapped {
+            for transformation in transformations {
+                transformation(self)
+            }
         }
     }
     
