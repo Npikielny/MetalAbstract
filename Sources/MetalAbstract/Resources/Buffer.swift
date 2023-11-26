@@ -81,6 +81,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
             case .sparse:
                 return
             case .gpu:
+                if let _ = manager.wrapped { return }
                 guard case let .allocation(count) = wrapped else {
                     throw MAError("Trying to make private buffer with data or no allocation size")
                 }
@@ -89,6 +90,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
                 }
                 manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
             case .shared:
+                if case .buffer(_, offset: _, usage: _) = manager.wrapped { return }
                 guard let wrapped = manager.wrapped else {
                     throw MAError("Byes never cached in manager")
                 }
@@ -105,6 +107,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
                 manager.cache(.buffer(buffer, offset: 0, usage: .shared))
             #if os(macOS)
             case .managed:
+                if case .buffer(_, offset: _, usage: _) = manager.wrapped { return }
                 guard let wrapped = manager.wrapped else {
                     throw MAError("Byes never cached in manager")
                 }
@@ -159,7 +162,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     }
     
     /// Replaces original buffer with an empty buffer
-    public func reset(count: Int, type: T.Type, usage: Usage = .gpu) {
+    public func reset(count: Int, usage: Usage = .gpu) {
         assert(usage == .gpu || usage == .managed || usage == .shared)
         self.usage = usage
         wrapped = .allocation(count)
