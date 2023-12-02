@@ -29,6 +29,10 @@ open class CopyShader: Shader {
         operation = .directTextures(from: from, to: to)
     }
     
+    public init(synchronizing: Texture) {
+        operation = .synchronize(synchronizing)
+    }
+    
     public func initialize(gpu: GPU, library: MTLLibrary) async throws {
         switch operation {
             case let .textures(source, _, sink, _, _),
