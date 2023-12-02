@@ -18,7 +18,7 @@ open class CopyShader: Shader {
             size: MTLSize
         )
         case directTextures(from: Texture, to: Texture)
-//        case synchronize(Texture)
+        case synchronize(Texture)
     }
     
     public init(source: Texture, sourceOrigin: MTLOrigin, sink: Texture, sinkOrigin: MTLOrigin, size: MTLSize) {
@@ -35,6 +35,8 @@ open class CopyShader: Shader {
                 let .directTextures(from: source, to: sink):
                 let _ = try await source.encode(gpu)
                 let _ = try await sink.encode(gpu)
+            case .synchronize(let tex):
+                let _ = try await tex.encode(gpu)
         }
     }
     
@@ -55,6 +57,9 @@ open class CopyShader: Shader {
                 )
             case let .directTextures(from, to):
                 try await encoder?.copy(from: from.encode(gpu), to: to.encode(gpu))
+            case let .synchronize(tex):
+                let unwrapped = try await tex.encode(gpu)
+                encoder?.synchronize(resource: unwrapped)
         }
         encoder?.endEncoding()
     }
