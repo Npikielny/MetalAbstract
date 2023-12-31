@@ -170,6 +170,13 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         manager.parent = self
         self.manager.cache(nil)
     }
+    
+    public func forceUnwrap() throws -> MTLBuffer {
+        guard case let .buffer(buffer, _, _) = manager.wrapped! else {
+            throw MAError("Force unwrapped buffer that did not exist :(")
+        }
+        return buffer
+    }
 }
 
 public enum Usage {
