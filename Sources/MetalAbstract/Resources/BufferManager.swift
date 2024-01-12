@@ -19,7 +19,10 @@ open class BufferManager {
     var count: Int? { parent?.unsafeCount }
     
     func initialize(gpu: GPU) async throws {
-        try await parent?.initialize(gpu: gpu)
+        guard let parent else {
+            throw MAError("Buffer without manager")
+        }
+        try await parent.initialize(gpu: gpu)
     }
     
     enum Representation {

@@ -69,16 +69,6 @@ open class ComputeShader {
         self.dispatchSize = dispatchSize
     }
     
-    public func initialize(gpu: GPU) async throws {
-        for texture in textures {
-            let _ = try await texture.encode(gpu)
-        }
-        
-        for manager in bufferManagers {
-            try await manager.initialize(gpu: gpu)
-        }
-    }
-    
     public func copy() -> ComputeShader {
         ComputeShader(function: function, bufferManagers: bufferManagers, textures: textures, threadGroupSize: threadGroupSize, dispatchSize: dispatchSize)
     }

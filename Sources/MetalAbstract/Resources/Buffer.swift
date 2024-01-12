@@ -29,7 +29,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     enum Representation {
         case allocation(_ count: Int)
         case future((GPU) async throws -> (MTLBuffer, count: Int))
-        case managed
+        case delegated
         case freed
     }
     
@@ -50,14 +50,14 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         self.name = name
         switch usage {
             case .sparse:
-                self.wrapped = .managed
+                self.wrapped = .delegated
                 self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             case .shared:
-                self.wrapped = .managed
+                self.wrapped = .delegated
                 self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             #if os(macOS)
             case .managed:
-                self.wrapped = .managed
+                self.wrapped = .delegated
                 self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             #endif
             case .gpu:
@@ -68,8 +68,9 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         manager.parent = self
     }
     
-    public init(count: Int, type: T.Type, usage: Usage = .gpu) {
+    public init(name: String? = nil, count: Int, type: T.Type, usage: Usage = .gpu) {
         assert(usage == .gpu || usage == .managed || usage == .shared)
+        self.name = name
         self.usage = usage
         wrapped = .allocation(count)
         self.count = count
@@ -78,8 +79,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     
     public func initialize(gpu: GPU) async throws {
         switch usage {
-            case .sparse:
-                return
+            case .sparse: return
             case .gpu:
                 if let _ = manager.wrapped { return }
                 guard case let .allocation(count) = wrapped else {
@@ -146,11 +146,11 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     public func reset(_ wrapped: [T], usage: Usage) {
         switch usage {
             case .sparse, .shared:
-                self.wrapped = .managed
+                self.wrapped = .delegated
                 self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             #if os(macOS)
             case .managed:
-                self.wrapped = .managed
+                self.wrapped = .delegated
                 self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
             #endif
             case .gpu:
