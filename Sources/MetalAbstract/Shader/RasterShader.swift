@@ -11,12 +11,12 @@ open class RasterShader: CompiledShader {
     var function: Function
     
     public var vertexTextures: [Texture]
-    public var vertexBuffers: [BufferManager]
+    public var vertexBuffers: [any ErasedBuffer]
     
     public var fragmentTextures:[Texture]
-    public var fragmentBuffers: [BufferManager]
+    public var fragmentBuffers: [any ErasedBuffer]
     
-    var bufferManagers: [BufferManager] { vertexBuffers + fragmentBuffers }
+    var buffers: [any ErasedBuffer] { vertexBuffers + fragmentBuffers }
     var textures: [Texture] { vertexTextures + fragmentTextures }
     
     public var startingVertex: Int
@@ -106,9 +106,9 @@ open class RasterShader: CompiledShader {
     ) {
         self.function = function
         self.vertexTextures = vertexTextures
-        self.vertexBuffers = vertexBuffers.map(\.manager)
+        self.vertexBuffers = vertexBuffers
         self.fragmentTextures = fragmentTextures
-        self.fragmentBuffers = fragmentBuffers.map(\.manager)
+        self.fragmentBuffers = fragmentBuffers
         self.startingVertex = startingVertex
         self.vertexCount = vertexCount
         self.descriptor = passDescriptor
@@ -138,9 +138,9 @@ open class RasterShader: CompiledShader {
             format: targetFormat
         )
         self.vertexTextures = vertexTextures
-        self.vertexBuffers = vertexBuffers.map(\.manager)
+        self.vertexBuffers = vertexBuffers
         self.fragmentTextures = fragmentTextures
-        self.fragmentBuffers = fragmentBuffers.map(\.manager)
+        self.fragmentBuffers = fragmentBuffers
         self.startingVertex = startingVertex
         self.vertexCount = vertexCount
         self.descriptor = passDescriptor
@@ -170,12 +170,12 @@ open class RasterShader: CompiledShader {
     
     func setBuffers(_ encoder: Encoder) throws {
         encoder.encoding = .vertex
-        for (index, buffer) in vertexBuffers.enumerated() {
+        for (index, buffer) in vertexBuffers.map(\.manager).enumerated() {
             try buffer.encode(encoder, index: index)
         }
         
         encoder.encoding = .fragment
-        for (index, buffer) in fragmentBuffers.enumerated() {
+        for (index, buffer) in fragmentBuffers.map(\.manager).enumerated() {
             try buffer.encode(encoder, index: index)
         }
     }

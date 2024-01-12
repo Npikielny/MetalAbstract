@@ -51,7 +51,7 @@ protocol CompiledShader: Shader {
     
     var function: Function { get set }
     
-    var bufferManagers: [BufferManager] { get }
+    var buffers: [any ErasedBuffer] { get }
     var textures: [Texture] { get }
     
     func makeEncoder(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws -> Encoder?
@@ -63,8 +63,8 @@ protocol CompiledShader: Shader {
 
 extension CompiledShader {
     public func initialize(gpu: GPU, library: MTLLibrary) async throws {
-        for buffer in bufferManagers {
-            try await buffer.initialize(gpu: gpu)
+        for buffer in buffers {
+            try await buffer.manager.initialize(gpu: gpu)
         }
         
         for texture in textures {

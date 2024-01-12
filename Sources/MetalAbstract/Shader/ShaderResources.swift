@@ -9,15 +9,15 @@ import Foundation
 
 public protocol ShaderResources {
     var allTextures: [[Texture]] { get }
-    var allBuffers: [[BufferManager]] { get }
+    var allBuffers: [[any ErasedBuffer]] { get }
 }
 
 extension ComputeShader: ShaderResources {
     public var allTextures: [[Texture]] { [textures] }
-    public var allBuffers: [[BufferManager]] { [bufferManagers] }
+    public var allBuffers: [[any ErasedBuffer]] { [buffers] }
 }
 
 extension RasterShader: ShaderResources {
     public var allTextures: [[Texture]] { [fragmentTextures, vertexTextures] }
-    public var allBuffers: [[BufferManager]] { [fragmentBuffers, vertexBuffers] }
+    public var allBuffers: [[any ErasedBuffer]] { [fragmentBuffers, vertexBuffers] }
 }

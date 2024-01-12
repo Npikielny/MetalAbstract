@@ -23,14 +23,13 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     public var count: Int
     public var unsafeCount: Int? { count }
     
-    public let manager = BufferManager()
+    public let manager: BufferManager
     private var usage: Usage
 
     enum Representation {
         case allocation(_ count: Int)
         case future((GPU) async throws -> (MTLBuffer, count: Int))
         case delegated
-        case freed
     }
     
     convenience init(name: String? = nil, _ wrapped: T..., usage: Usage) {
@@ -42,12 +41,16 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         self.name = name
         self.usage = .sparse
         self.count = 0
-        wrapped = .freed
+        wrapped = .delegated
+        manager = BufferManager(name: name, usage: usage)
         manager.parent = self
     }
     
     public init(name: String? = nil, _ wrapped: [T], usage: Usage) {
         self.name = name
+        self.usage = usage
+        count = wrapped.count
+        manager = BufferManager(name: name, usage: usage)
         switch usage {
             case .sparse:
                 self.wrapped = .delegated
@@ -63,8 +66,6 @@ open class Buffer<T: Bytes>: ErasedBuffer {
             case .gpu:
                 fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
         }
-        self.usage = usage
-        count = wrapped.count
         manager.parent = self
     }
     
@@ -74,6 +75,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         self.usage = usage
         wrapped = .allocation(count)
         self.count = count
+        manager = BufferManager(name: name, usage: usage)
         manager.parent = self
     }
     
@@ -114,31 +116,46 @@ open class Buffer<T: Bytes>: ErasedBuffer {
                 guard case let .bytes(wrapped) = wrapped else {
                     throw MAError("Unable to make shared buffer from private allocation")
                 }
-                guard let manager = gpu.device.makeBuffer(
+                guard let buffer = gpu.device.makeBuffer(
                     bytes: wrapped.getPointer(),
                     length: MemoryLayout<T>.stride * count,
                     options: .storageModeManaged
                 ) else {
                     throw MAError("Unable to make buffer")
                 }
-                self.manager.cache(.buffer(manager, offset: 0, usage: .managed))
+                manager.cache(.buffer(buffer, offset: 0, usage: .managed))
             #endif
         }
-        self.wrapped = .freed
+        self.wrapped = .delegated
     }
     
     public subscript(_ index: Int) -> T? {
         get {
-            switch usage {
-                case .gpu:
+            switch wrapped {
+                case .allocation(_), .future(_):
                     fatalError("GPU Resources are inaccessible to the CPU")
-                case .shared, .managed, .sparse:
-                    return manager[index, T.self, count]
+                case .delegated:
+                    switch usage {
+                        case .gpu:
+                            fatalError("GPU Resources are inaccessible to the CPU")
+                        case .shared, .managed, .sparse:
+                            return manager[index, T.self, count]
+                    }
             }
         }
         set {
             guard let newValue else { fatalError("Cannot have null value in buffer") }
-            manager[index, T.self, count] = newValue
+            switch wrapped {
+                case .allocation(_), .future(_):
+                    fatalError("GPU Resources are inaccessible to the CPU")
+                case .delegated:
+                    switch usage {
+                        case .gpu:
+                            fatalError("GPU Resources are inaccessible to the CPU")
+                        case .shared, .managed, .sparse:
+                            manager[index, T.self, count] = newValue
+                    }
+            }
         }
     }
     
@@ -194,7 +211,7 @@ public enum Usage {
 
 open class VoidBuffer: ErasedBuffer {
     public typealias Transform = (UnsafeMutableRawPointer) -> (start: Int, end: Int)
-    public let manager = BufferManager()
+    public let manager: BufferManager
     
     public typealias Element = Void
     
@@ -211,6 +228,7 @@ open class VoidBuffer: ErasedBuffer {
         self.name = name
         wrapped = .future(future)
         self.usage = usage
+        manager = BufferManager(name: name, usage: usage)
         manager.parent = self
     }
     

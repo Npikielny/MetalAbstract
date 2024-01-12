@@ -10,11 +10,20 @@ import Metal
 open class BufferManager {
     weak var parent: (any ErasedBuffer)? = nil
     var wrapped: Representation? = nil
-    var usage: Usage? = nil
+    let name: String?
+    let usage: Usage
     
     var transformations = [(BufferManager) -> Void]()
     
-    init() {}
+    init(name: String?, usage: Usage) {
+        self.name = name
+        self.usage = usage
+    }
+    
+    convenience init(name: String?, usage: Usage, parent: any ErasedBuffer) {
+        self.init(name: name, usage: usage)
+        self.parent = parent
+    }
     
     var count: Int? { parent?.unsafeCount }
     

@@ -9,7 +9,7 @@ import Metal
 
 open class ComputeShader {
     var function: Function
-    public var bufferManagers: [BufferManager]
+    public var buffers: [any ErasedBuffer]
     public var textures: [Texture]
     var threadGroupSize: MTLSize
     var dispatchSize: ThreadGroupDispatch
@@ -41,7 +41,7 @@ open class ComputeShader {
         dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()
     ) {
         function = Function(name: name, constants: constants)
-        bufferManagers = buffers.map(\.manager)
+        self.buffers = buffers
         self.textures = textures
         self.threadGroupSize = threadGroupSize
         self.dispatchSize = dispatchSize
@@ -55,22 +55,14 @@ open class ComputeShader {
         dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()
     ) {
         self.function = function
-        bufferManagers = buffers.map(\.manager)
-        self.textures = textures
-        self.threadGroupSize = threadGroupSize
-        self.dispatchSize = dispatchSize
-    }
-    
-    private init(function: Function, bufferManagers: [BufferManager], textures: [Texture], threadGroupSize: MTLSize, dispatchSize: ThreadGroupDispatch = ThreadGroupDispatchWrapper()) {
-        self.function = function
-        self.bufferManagers = bufferManagers
+        self.buffers = buffers
         self.textures = textures
         self.threadGroupSize = threadGroupSize
         self.dispatchSize = dispatchSize
     }
     
     public func copy() -> ComputeShader {
-        ComputeShader(function: function, bufferManagers: bufferManagers, textures: textures, threadGroupSize: threadGroupSize, dispatchSize: dispatchSize)
+        ComputeShader(function: function, buffers: buffers, textures: textures, threadGroupSize: threadGroupSize, dispatchSize: dispatchSize)
     }
 }
 
@@ -113,7 +105,7 @@ public struct ThreadGroupDispatchWrapper: ThreadGroupDispatch {
     
     public static var buffer: ThreadGroupDispatch {
         ThreadGroupDispatchWrapper { size, resources in
-            let bufferCount = (resources.allBuffers.first?.first?.count)!
+            let bufferCount = (resources.allBuffers.first?.first?.manager.count)!
             return Self.groupsForSize(
                 size: size,
                 dispatch: MTLSize(width: bufferCount, height: 1, depth: 1)
@@ -130,7 +122,7 @@ extension ComputeShader: CompiledShader {
     }
     
     func setBuffers(_ encoder: ComputeEncoder) throws {
-        for (index, buffer) in bufferManagers.enumerated() {
+        for (index, buffer) in buffers.map(\.manager).enumerated() {
             try buffer.encode(encoder, index: index)
         }
     }
