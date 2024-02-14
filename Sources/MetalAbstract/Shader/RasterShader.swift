@@ -268,6 +268,15 @@ extension RasterShader {
             
             return try await gpu.device.makeRenderPipelineState(descriptor: descriptor)
         }
+        
+        public func compile(gpu: GPU, library: MTLLibrary) async throws {
+            switch wrapped {
+                case .constructor(let constructor):
+                    wrapped = try await .pipeline(Self.construct(gpu: gpu, library: library, constructor: constructor))
+                case .pipeline(_):
+                    return
+            }
+        }
     }
     
     class Encoder: CommandEncoder {

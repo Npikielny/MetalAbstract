@@ -158,6 +158,15 @@ extension ComputeShader {
             let function = try library.compile(name: constructor.0, constants: constructor.1)
             return try gpu.device.makeComputePipelineState(function: function)
         }
+        
+        public func compile(gpu: GPU, library: MTLLibrary) throws {
+            switch wrapped {
+                case .constructor(let constructor):
+                    wrapped = try .pipeline(Self.construct(gpu: gpu, library: library, constructor: constructor))
+                case .pipeline(_):
+                    return
+            }
+        }
     }
     
     class ComputeEncoder: CommandEncoder {
