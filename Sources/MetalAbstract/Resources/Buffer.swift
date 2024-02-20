@@ -232,8 +232,29 @@ open class VoidBuffer: ErasedBuffer {
         manager.parent = self
     }
     
+    public init(name: String? = nil, buffer: MTLBuffer, count: Int, usage: Usage) {
+        // TODO: in theory GPU would work here...
+        assert(usage != .gpu && usage != .sparse)
+        self.name = name
+        wrapped = .buffer(buffer, count)
+        self.usage = usage
+        manager = BufferManager(name: name, usage: usage)
+        manager.parent = self
+    }
+    
+    public init(name: String? = nil, usage: Usage) {
+        assert(usage != .gpu && usage != .sparse)
+        self.name = name
+        wrapped = .unassigned
+        self.usage = usage
+        manager = BufferManager(name: name, usage: usage)
+        manager.parent = self
+    }
+    
     public func initialize(gpu: GPU) async throws {
         switch wrapped {
+            case .unassigned:
+                throw MAError("Cannot initialize unnassigned buffer")
             case .buffer(_, _): return
             case let .future(future):
                 guard let (buffer, count) = try await future(gpu) else {
@@ -251,7 +272,15 @@ open class VoidBuffer: ErasedBuffer {
         }
     }
     
-    var buffer: MTLBuffer? {
+    public func reset(buffer: MTLBuffer, count: Int) {
+        wrapped = .buffer(buffer, count)
+    }
+    
+    public func reset(future: @escaping (_ gpu: GPU) -> (MTLBuffer, Int)?) {
+        wrapped = .future(future)
+    }
+    
+    public var buffer: MTLBuffer? {
         guard case let .some(.buffer(buffer, _, _)) = manager.wrapped else { return nil }
         return buffer
     }
@@ -277,6 +306,8 @@ open class VoidBuffer: ErasedBuffer {
     enum Representation {
         case future((GPU) async throws -> (MTLBuffer, Int)?)
         case buffer(MTLBuffer, _ count: Int)
+        /// Requires manual reset before usage – essentially implicit unwrap
+        case unassigned
     }
 }
 

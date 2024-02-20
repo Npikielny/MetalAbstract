@@ -101,8 +101,7 @@ open class RasterShader: CompiledShader {
         startingVertex: Int = 0,
         vertexCount: Int = 6,
         primitive: MTLPrimitiveType = .triangle,
-        passDescriptor: RenderPassDescriptor,
-        targetFormat: RenderTargetFormat
+        passDescriptor: RenderPassDescriptor
     ) {
         self.function = function
         self.vertexTextures = vertexTextures
