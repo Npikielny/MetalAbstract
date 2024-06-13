@@ -111,7 +111,7 @@ open class BufferManager {
     
     func encode(_ encoder: any CommandEncoder, index: Int) throws {
         guard let wrapped else {
-            throw MAError("No buffer to encode")
+            throw MAError("No buffer to encode \(self.name ?? "unnamed buffer")")
         }
         
         switch wrapped {

@@ -144,9 +144,11 @@ extension ComputeShader {
         typealias Constructor = (String, MTLFunctionConstantValues?)
         typealias Pipeline = MTLComputePipelineState
         
+        var name: String
         var wrapped: PipelineRepresentation<ComputeShader.Function>
         
         public init(name: String, constants: MTLFunctionConstantValues? = nil) {
+            self.name = name
             wrapped = .constructor((name, constants))
         }
         

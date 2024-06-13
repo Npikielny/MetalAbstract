@@ -228,6 +228,8 @@ extension Texture: RenderTargetFormat {
 
 extension RasterShader {
     public final class Function: Pipeline {
+        var name: String
+        
         typealias Constructor = (
             vertName: String,
             vertConstants: MTLFunctionConstantValues?,
@@ -246,6 +248,7 @@ extension RasterShader {
             fragmentConstants: MTLFunctionConstantValues? = nil,
             format: RenderTargetFormat
         ) {
+            self.name = "\(vertexShader), \(fragmentShader)"
             self.wrapped = .constructor((vertexShader, vertexConstants, fragmentShader, fragmentConstants, format))
         }
         
