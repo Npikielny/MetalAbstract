@@ -148,8 +148,12 @@ open class RasterShader: CompiledShader {
     
     func makeEncoder(gpu: GPU, commandBuffer: MTLCommandBuffer) async throws -> Encoder? {
         switch descriptor {
-            case .drawable:
-                guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: defaultDescriptor!) else { return nil }
+            case let .drawable(loadAction):
+                let descriptor = defaultDescriptor!
+                if let loadAction {
+                    descriptor.colorAttachments[0].loadAction = loadAction
+                }
+                guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else { return nil }
                 return Encoder(encoder: encoder)
             case let .custom(descriptor):
                 guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else { return nil }
@@ -196,7 +200,7 @@ open class RasterShader: CompiledShader {
 
 // MARK: Render Pass Descriptor
 public enum RenderPassDescriptor {
-    case drawable
+    case drawable(_ loadAction: MTLLoadAction? = nil)
     case custom(MTLRenderPassDescriptor)
     case future((GPU) async throws -> MTLRenderPassDescriptor)
     
