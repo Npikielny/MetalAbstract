@@ -336,13 +336,23 @@ extension Int8: GPUEncodable {}
 extension UInt8: GPUEncodable {}
 extension Float: GPUEncodable {}
 
-extension SIMD2: Bytes where Scalar: GPUEncodable {}
+//extension SIMD2: Bytes where Scalar: GPUEncodable {
+//    typealias GPUElement = self
+//}
+extension SIMD2: Bytes where Scalar: GPUEncodable {
+    public typealias GPUElement = Self
+}
+
 extension SIMD2: GPUEncodable where Scalar: GPUEncodable {}
 
-extension SIMD3: Bytes where Scalar: GPUEncodable {}
+extension SIMD3: Bytes where Scalar: GPUEncodable {
+    public typealias GPUElement = Self
+}
 extension SIMD3: GPUEncodable where Scalar: GPUEncodable {}
 
-extension SIMD4: Bytes where Scalar: GPUEncodable {}
+extension SIMD4: Bytes where Scalar: GPUEncodable {
+    public typealias GPUElement = Self
+}
 extension SIMD4: GPUEncodable where Scalar: GPUEncodable {}
 
 public typealias Vec2<T: SIMDScalar> = SIMD2<T>
