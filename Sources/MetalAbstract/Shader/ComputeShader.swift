@@ -11,8 +11,8 @@ open class ComputeShader {
     var function: Function
     public var buffers: [any ErasedBuffer]
     public var textures: [Texture]
-    var threadGroupSize: MTLSize
-    var dispatchSize: ThreadGroupDispatch
+    public var threadGroupSize: MTLSize
+    public var dispatchSize: ThreadGroupDispatch
     
     public convenience init(
         name: String,
