@@ -81,50 +81,86 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     
     public func initialize(gpu: GPU) async throws {
         switch usage {
-            case .sparse: return
-            case .gpu:
-                if let _ = manager.wrapped { return }
-                guard case let .allocation(count) = wrapped else {
-                    throw MAError("Trying to make private buffer with data or no allocation size")
-                }
-                guard let buffer = gpu.device.makeBuffer(length: MemoryLayout<T>.stride * count, options: .storageModePrivate) else {
-                    throw MAError("Unable to make buffer")
-                }
-                manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
-            case .shared:
+        case .sparse: return
+        case .gpu:
+            if let _ = manager.wrapped { return }
+            guard case let .allocation(count) = wrapped else {
+                throw MAError("Trying to make private buffer with data or no allocation size")
+            }
+            guard let buffer = gpu.device.makeBuffer(length: MemoryLayout<T>.stride * count, options: .storageModePrivate) else {
+                throw MAError("Unable to make buffer")
+            }
+            manager.cache(.buffer(buffer, offset: 0, usage: .gpu))
+        case .shared:
+            switch wrapped {
+            case .delegated:
                 if case .buffer(_, offset: _, usage: _) = manager.wrapped { return }
                 guard let wrapped = manager.wrapped else {
-                    throw MAError("Byes never cached in manager")
+                    throw MAError("Delegated shared buffer, but unable to find \(name ?? "unnamed buffer")")
                 }
                 guard case let .bytes(wrapped) = wrapped else {
-                    throw MAError("Unable to make shared buffer from private allocation")
+                    throw MAError("Unable to make shared buffer from private allocation: \(name ?? "unnamed buffer")")
                 }
                 guard let buffer = gpu.device.makeBuffer(
                     bytes: wrapped.getPointer(),
                     length: MemoryLayout<T>.stride * count,
                     options: .storageModeShared
                 ) else {
+                    throw MAError("Unable to make buffer: \(name ?? "unnamed buffer")")
+                }
+                manager.cache(.buffer(buffer, offset: 0, usage: .shared))
+            case let .allocation(allocation):
+                count = allocation
+                guard let buffer = gpu.device.makeBuffer(
+                    length: MemoryLayout<T>.stride * count,
+                    options: .storageModeShared
+                ) else {
                     throw MAError("Unable to make buffer")
                 }
                 manager.cache(.buffer(buffer, offset: 0, usage: .shared))
-            #if os(macOS)
-            case .managed:
+                wrapped = .delegated
+            case let .future(future):
+                let (buffer, count) = try await future(gpu)
+                self.count = count
+                manager.cache(.buffer(buffer, offset: 0, usage: .shared))
+                wrapped = .delegated
+            }
+#if os(macOS)
+        case .managed:
+            switch wrapped {
+            case .delegated:
                 if case .buffer(_, offset: _, usage: _) = manager.wrapped { return }
                 guard let wrapped = manager.wrapped else {
-                    throw MAError("Byes never cached in manager")
+                    throw MAError("Delegated managed buffer, but unable to find \(name ?? "unnamed buffer")")
                 }
                 guard case let .bytes(wrapped) = wrapped else {
-                    throw MAError("Unable to make shared buffer from private allocation")
+                    throw MAError("Unable to make shared buffer from private allocation: \(name ?? "unnamed buffer")")
                 }
                 guard let buffer = gpu.device.makeBuffer(
                     bytes: wrapped.getPointer(),
                     length: MemoryLayout<T>.stride * count,
                     options: .storageModeManaged
                 ) else {
+                    throw MAError("Unable to make buffer: \(name ?? "unnamed buffer")")
+                }
+                manager.cache(.buffer(buffer, offset: 0, usage: .managed))
+            case let .allocation(allocation):
+                count = allocation
+                guard let buffer = gpu.device.makeBuffer(
+                    length: MemoryLayout<T>.stride * count,
+                    options: .storageModeManaged
+                ) else {
                     throw MAError("Unable to make buffer")
                 }
                 manager.cache(.buffer(buffer, offset: 0, usage: .managed))
-            #endif
+                wrapped = .delegated
+            case let .future(future):
+                let (buffer, count) = try await future(gpu)
+                self.count = count
+                manager.cache(.buffer(buffer, offset: 0, usage: .managed))
+                wrapped = .delegated
+            }
+#endif
         }
         self.wrapped = .delegated
     }
