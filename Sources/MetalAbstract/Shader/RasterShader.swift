@@ -196,6 +196,20 @@ open class RasterShader: CompiledShader {
         encoder.encoder.drawPrimitives(type: primitive, vertexStart: startingVertex, vertexCount: vertexCount)
         // FIXME: Presenting
     }
+    
+    public func copy() -> RasterShader {
+        RasterShader(
+            function: function,
+            vertexTextures: vertexTextures,
+            vertexBuffers: vertexBuffers,
+            fragmentTextures: fragmentTextures,
+            fragmentBuffers: fragmentBuffers,
+            startingVertex: startingVertex,
+            vertexCount: vertexCount,
+            primitive: primitive,
+            passDescriptor: descriptor
+        )
+    }
 }
 
 // MARK: Render Pass Descriptor
