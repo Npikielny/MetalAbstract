@@ -52,25 +52,25 @@ open class Buffer<T: Bytes>: ErasedBuffer {
         count = wrapped.count
         manager = BufferManager(name: name, usage: usage)
         switch usage {
-            case .sparse:
-                self.wrapped = .delegated
-                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
-            case .shared:
-                self.wrapped = .delegated
-                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
-            #if os(macOS)
-            case .managed:
-                self.wrapped = .delegated
-                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
-            #endif
-            case .gpu:
-                fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
+        case .sparse:
+            self.wrapped = .delegated
+            self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
+        case .shared:
+            self.wrapped = .delegated
+            self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
+#if os(macOS)
+        case .managed:
+            self.wrapped = .delegated
+            self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
+#endif
+        case .gpu:
+            fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
         }
         manager.parent = self
     }
     
     public init(name: String? = nil, count: Int, type: T.Type, usage: Usage = .gpu) {
-        assert(usage == .gpu || usage == .managed || usage == .shared)
+        assert(usage != .sparse)
         self.name = name
         self.usage = usage
         wrapped = .allocation(count)
@@ -168,29 +168,37 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     public subscript(_ index: Int) -> T? {
         get {
             switch wrapped {
-                case .allocation(_), .future(_):
+            case .allocation(_), .future(_):
+                fatalError("GPU Resources are inaccessible to the CPU")
+            case .delegated:
+                switch usage {
+                case .gpu:
                     fatalError("GPU Resources are inaccessible to the CPU")
-                case .delegated:
-                    switch usage {
-                        case .gpu:
-                            fatalError("GPU Resources are inaccessible to the CPU")
-                        case .shared, .managed, .sparse:
-                            return manager[index, T.self, count]
-                    }
+                case .shared, .sparse:
+                    return manager[index, T.self, count]
+#if os(macOS)
+                case .managed:
+                    return manager[index, T.self, count]
+#endif
+                }
             }
         }
         set {
             guard let newValue else { fatalError("Cannot have null value in buffer") }
             switch wrapped {
-                case .allocation(_), .future(_):
+            case .allocation(_), .future(_):
+                fatalError("GPU Resources are inaccessible to the CPU")
+            case .delegated:
+                switch usage {
+                case .gpu:
                     fatalError("GPU Resources are inaccessible to the CPU")
-                case .delegated:
-                    switch usage {
-                        case .gpu:
-                            fatalError("GPU Resources are inaccessible to the CPU")
-                        case .shared, .managed, .sparse:
-                            manager[index, T.self, count] = newValue
-                    }
+                case .shared, .sparse:
+                    manager[index, T.self, count] = newValue
+#if os(macOS)
+                case .managed:
+                    manager[index, T.self, count] = newValue
+#endif
+                }
             }
         }
     }
@@ -198,16 +206,16 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     /// Replaces original buffer with a new buffer encoding `wrapped`
     public func reset(_ wrapped: [T], usage: Usage) {
         switch usage {
-            case .sparse, .shared:
-                self.wrapped = .delegated
-                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
-            #if os(macOS)
-            case .managed:
-                self.wrapped = .delegated
-                self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
-            #endif
-            case .gpu:
-                fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
+        case .sparse, .shared:
+            self.wrapped = .delegated
+            self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
+#if os(macOS)
+        case .managed:
+            self.wrapped = .delegated
+            self.manager.cache(.bytes(BytesWrapper(array: wrapped)))
+#endif
+        case .gpu:
+            fatalError("Unable to create GPU-only buffer with initial values, try other initializer")
         }
         self.usage = usage
         count = wrapped.count
@@ -216,7 +224,7 @@ open class Buffer<T: Bytes>: ErasedBuffer {
     
     /// Replaces original buffer with an empty buffer
     public func reset(count: Int, usage: Usage = .gpu) {
-        assert(usage == .gpu || usage == .managed || usage == .shared)
+        assert(usage != .sparse)
         self.usage = usage
         wrapped = .allocation(count)
         self.count = count
@@ -237,10 +245,10 @@ public enum Usage {
     case gpu
     /// Both CPU and GPU share this data
     case shared
-    #if os(macOS)
+#if os(macOS)
     /// GPU data that the CPU can modify
     case managed
-    #endif
+#endif
     /// Small pieces of data that are stored on and can only be changed by the CPU
     case sparse
 }
@@ -289,22 +297,22 @@ open class VoidBuffer: ErasedBuffer {
     
     public func initialize(gpu: GPU) async throws {
         switch wrapped {
-            case .unassigned:
-                throw MAError("Cannot initialize unnassigned buffer")
-            case .buffer(_, _): return
-            case let .future(future):
-                guard let (buffer, count) = try await future(gpu) else {
-                    throw MAError("Unabled to create buffer \(name ?? "")")
-                }
-                let ptr = buffer.contents()
-                let bounds = transforms.map { $0(ptr) }
-                #if os(macOS)
-                if usage == .managed, let min = bounds.map(\.start).min(), let max = bounds.map(\.end).max() {
-                    buffer.didModifyRange(min..<max)
-                }
-                #endif
-                wrapped = .buffer(buffer, count)
-                manager.cache(.buffer(buffer, offset: 0, usage: usage))
+        case .unassigned:
+            throw MAError("Cannot initialize unnassigned buffer")
+        case .buffer(_, _): return
+        case let .future(future):
+            guard let (buffer, count) = try await future(gpu) else {
+                throw MAError("Unabled to create buffer \(name ?? "")")
+            }
+            let ptr = buffer.contents()
+            let bounds = transforms.map { $0(ptr) }
+#if os(macOS)
+            if usage == .managed, let min = bounds.map(\.start).min(), let max = bounds.map(\.end).max() {
+                buffer.didModifyRange(min..<max)
+            }
+#endif
+            wrapped = .buffer(buffer, count)
+            manager.cache(.buffer(buffer, offset: 0, usage: usage))
         }
     }
     
@@ -329,11 +337,11 @@ open class VoidBuffer: ErasedBuffer {
     public func edit(_ transform: @escaping Transform) {
         if let buffer {
             let (start, end) = transform(buffer.contents())
-            #if os(macOS)
+#if os(macOS)
             if usage == .managed {
                 buffer.didModifyRange(start..<end)
             }
-            #endif
+#endif
         } else {
             transforms.append(transform)
         }
